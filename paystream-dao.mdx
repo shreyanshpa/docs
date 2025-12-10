@@ -1,0 +1,81 @@
+---
+title: "Paystream DAO"
+description: "Governance, tokenomics, and ownership structure of the Paystream protocol"
+---
+
+# Paystream (PAYS) Protocol Documentation
+
+## Governance & Ownership Overview
+
+Paystream is governed by **Futarchy**, a model that utilizes prediction markets to authorize decisions based on their projected impact on the PAYS token value. Instead of traditional popularity-based voting, proposals are executed only if the market predicts a positive price outcome.
+
+The protocol is legally registered as a **Marshall Islands DAO LLC**. This structure guarantees that all intellectual property, revenue streams, and treasury assets are owned directly by the company—and effectively, the PAYS token holders—rather than the founding team.
+
+---
+
+## Token Launch & Supply
+
+The PAYS token launched via a fair auction mechanism on MetaDAO to align distribution with long-term value creation.
+
+### Launch Mechanics
+
+- **Hard Cap:** $750,000
+- **Initial Price:** $0.075 (Initial FDV: $1,856,250)
+- **Oversubscription:** The launch received over $6.1M in commitments. Due to the cap, participants were refunded approximately **87.8%** of their committed USDC.
+- **Liquidity:** **20%** of raised funds were permanently allocated to protocol liquidity.
+
+### Supply & Team Covenant
+
+- **Total Supply:** 25,000,000 PAYS
+- **Team Lock-up:** The team allocation is bound by a strict performance-based covenant:
+  - **18-Month Cliff:** Tokens are fully locked for 1.5 years.
+  - **Performance Tranches:** After the cliff, tokens vest in **20% tranches** only if the PAYS price hits specific multipliers of the launch price ($0.15, $0.30, $0.45).
+
+### Protocol Addresses
+
+| Account Type | Address | Description |
+| :--- | :--- | :--- |
+| **PAYS Token Mint** | `PAYZP1W3UmdEsNLJwmH61TNqACYJTvhXy8SCN4Tmeta` | Native governance token contract. |
+| **USDC Mint** | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` | Standard USDC for treasury/trading. |
+| **DAO Treasury (Squads Vault)** | `BpXtB2ASf2Tft97ewTd8PayXCqFQ6Wqod33qrwwfK9Vz` | "Squads Vault" receiving all revenue. |
+| **Treasury USDC Account** | `Fh6vP8zYdheJk9BdTTkSv879pBQFPZD25JctuYC83Nyt` | USDC treasury account. |
+| **DAO Multisig** | `DtziL5LhzPd4nNiZLsvqC3skCjmHo2Zg37KzshvXYgSN` | Vault controller managed by Futarchy. |
+| **DAO Creator** | `AdMZBEk6gT5CxSzcUe2s6G3vAybe8rpfy8NjPbDrH3BV` | Initial creator account. |
+| **AMM Base Vault** | `7BmyPoTkgVPmjdFFcjhmxTrXLVieNvUspyrNwukMabw4` | Holds PAYS trading inventory. |
+| **AMM Quote Vault** | `AncBeQe6QsTR29CsrVBEGxKfokra7TWh9MkqZ3UR7CEG` | Holds USDC trading liquidity. |
+
+---
+
+## How Futarchy Works
+
+Paystream removes political friction by replacing voting with financial incentives.
+
+### Decision Mechanism
+
+Every proposal creates two prediction markets:
+
+1. **Pass Market:** The price of PAYS if the proposal passes.
+2. **Fail Market:** The price of PAYS if the proposal fails.
+
+If the "Pass" market trades higher than the "Fail" market, the proposal is automatically executed on-chain.
+
+### Governance Parameters
+
+- **Pass Threshold:** **150 bps (1.5%)**. The "Pass" price must exceed the "Fail" price by 1.5%.
+- **Review Period:** **3 Days** (259,200 seconds).
+- **TWAP Delay:** **1 Day**. Price calculations begin 24 hours after creation to prevent manipulation.
+- **Proposer Stake:** **500,000 PAYS**. Required to submit a proposal.
+- **Operational Spending:** The DAO has a pre-authorized limit of **33,500 USDC per month** for recurring operational costs.
+
+### Legal & Asset Enforcement
+
+- **Entity Status:** The DAO is a recognized legal entity, allowing it to enter contracts and limiting member liability.
+- **IP Ownership:** Every IP is owned by the DAO LLC, controlled by the DAO. The **[Founder Covenant](https://www.paystream.finance/Covenant.pdf)** legally binds the founder to transfer all assets (domains, GitHub, Socials) to the DAO LLC within 60 days of launch.
+- **Treasury Control:** All revenue flows to the Treasury (`BpXtB2ASf2Tft97ewTd8PayXCqFQ6Wqod33qrwwfK9Vz`). If the covenant is breached, the DAO can restrict the team's access to funds.
+
+---
+
+## Legal Documentation
+
+- [Paystream Terms of Use](https://www.paystream.finance/terms-of-use)
+- [Paystream Founder Covenant](https://www.paystream.finance/Covenant.pdf)

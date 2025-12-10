@@ -58,6 +58,12 @@
             ]
           },
           {
+            "group": "DAO",
+            "pages": [
+              "paystream-dao"
+            ]
+          },
+          {
             "group": "Security",
             "pages": [
               "development",
