@@ -1,0 +1,24 @@
+---
+title: "Spot to Perp"
+description: "Classic funding rate arbitrage: long spot and short perp to collect funding, with same-venue and cross-venue options."
+---
+
+**Use this when:** You want the classic funding play, long spot, short perp, with the option to use same-venue portfolio margin or chase better rates cross-venue.
+
+Spot-to-perp is the **classic** funding play: you’re **long spot** and **short perp**. When funding is positive, shorts get paid by longs, you collect that. Price move on spot is offset by the perp, so you’re delta-neutral and left with the funding income. Your hedge is **Spot Notional − Perp Notional**; we rebalance when that delta drifts beyond our tolerance so the position stays effectively neutral.
+
+## What Is Spot-to-Perp?
+
+You buy the asset on spot and sell it on perpetual. The exchange does **not** net your spot and perp for margin, the perp leg has its own liquidation price. So margin has to survive worst-case **basis divergence**: the gap between spot and perp can widen in stress (historically about 3–8% for BTC; more for small caps). We size for that and keep leverage low (2–3x) so we’re not riding the edge.
+
+## Same-Venue vs Cross-Venue
+
+**Same-venue** (where the venue supports portfolio margin so spot profit can offset perp margin) gives the best capital efficiency: you need **30–60% less** capital than running each leg separately. We use post-only on both legs where we can.
+
+**Cross-venue** (e.g. spot on one venue, short perp on Hyperliquid, Drift, Pacifica, or Lighter) can give you better funding rate choice, but you lose the margin offset and take on transfer risk and extra ops. We use it when the funding spread justifies it.
+
+## Liquidation and Basis Risk
+
+The perp leg has its own liquidation price; the venue doesn’t see your spot hedge. We keep margin enough for worst-case basis divergence and keep a liquidation buffer of at least max(15%, 2× 30-day realized vol). Max safe leverage in practice is limited by basis risk plus maintenance margin plus that buffer, we stay at 2–3x. For the full margin tiers and when we auto-close, see [Safeguard](/strategies/safeguard).
+
+For safety mechanisms and auto-close options, see [Safeguard](/strategies/safeguard). For how this fits with perp–perp and the overall framework, see [Overview](/strategies/overview).

@@ -20,3 +20,7 @@ Paystream routes idle capital  to earn maximum yield. When funds are not activel
 ## LP Terminal
 
 Paystream LP Terminal is a unified platform to manage liquidity provisioning positions across Meteora and Raydium from a single interface. It consolidates fragmented liquidity tooling on Solana into one system, allowing users to create and manage LP positions across all supported pool types (DAMM, DLMM, CLMM, CPMM) with integrated analytics, automation, copy trading, and portfolio management.
+
+## Strategies
+
+Paystream runs **delta-neutral funding strategies** so you can earn from perpetual funding rates without betting on price. We go long and short in a hedged way: when funding is positive, you collect it; when it flips, we have strict gates and auto-close so one bad trade doesn’t blow up the book. We support **perp-to-perp** (two perp legs on different venues, harvesting the funding *difference*) and **spot-to-perp** (long spot, short perp, same-venue for best capital efficiency or cross-venue for better rates). Every position is protected by pre-entry safety gates, margin tiers, ADL handling, and a kill switch. See the [Strategies](/strategies/overview) section for the full picture.

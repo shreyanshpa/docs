@@ -1,0 +1,32 @@
+---
+title: "Perp to Perp"
+description: "Funding rate arbitrage using two perpetual legs on different venues to harvest the funding rate differential."
+---
+
+**Use this when:** The best funding edge is *between two perp venues*, you want to harvest the rate *difference*, not run a spot leg.
+
+Perp-to-perp is when you run **two perpetual positions on different venues** and pocket the **difference** in their funding rates. You’re not betting on direction, you’re delta-neutral, so price movement on one leg cancels the other. Your edge is purely the funding spread between the two venues.
+
+## What Is Perp-to-Perp?
+
+You go **short** where funding is **higher** (you receive from longs) and **long** where it’s **lower** (you pay less). The net is what you keep.
+
+Example: Hyperliquid pays +0.03% per 8h, Drift pays +0.01% per 8h. You short the higher-funding venue and long the lower. Your net is 0.02% per 8h, about 0.06% per day, or roughly 22% APR. The position is hedged: you’re harvesting the funding gap, not price move.
+
+There’s **no spot leg**, so there’s no portfolio margin. Each perp leg has its own margin and liquidation price. Leg risk (one leg filled before the other) and ADL risk (one venue force-closing your profitable leg) both apply. We keep leverage at 2–3x and follow our [Safeguard](/strategies/safeguard) rules so you’re not caught off guard.
+
+## What We Have Here
+
+We use **Hyperliquid**, **Drift**, **Pacifica**, and **Lighter**. We pair venues depending on where the funding spread is best (e.g. Hyperliquid vs Drift for Solana-native pairs) and place orders using each venue’s native SDK so execution is under our control.
+
+To keep cost down, we use **post-only** on both legs where we can, that keeps net execution cost at or below a few bps. We put the taker leg on the more liquid venue (to limit slippage) and the maker leg on the other.
+
+## Execution and Risk
+
+**Entry**: We hit the faster or more liquid venue first with a taker (IOC or market) so we get a known fill and size. Then we place a maker (post-only limit) on the other venue for that exact size. We don’t leave the second leg hanging: if it’s not filled within a few seconds, we market the rest so we’re not sitting with one leg open and exposed.
+
+**Exit**: We close the **less reliable leg first** (e.g. the venue with slower finality or thinner book), then the other. We use IOC or market on both: speed over fee savings. In an emergency we cancel everything, market-close the first leg, then market-close the second without waiting for confirmations, and we retry the first leg up to 3× if needed.
+
+**Risks**: No portfolio margin offset means each leg stands on its own. ADL on one venue can close your profitable leg and leave the other naked. That’s why we stick to leverage ≤ 3x, monitor ADL every 30s, and follow [Safeguard](/strategies/safeguard): reduce at ADL 4/5, exit at 5/5, and if ADL fires on one leg, we close the other at market immediately.
+
+For the full safety framework, pre-entry gates, and auto-close options, see [Safeguard](/strategies/safeguard). For the big picture and how this fits with spot–perp, see [Overview](/strategies/overview).

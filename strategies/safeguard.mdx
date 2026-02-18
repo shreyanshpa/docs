@@ -1,0 +1,98 @@
+---
+title: "Safeguard"
+description: "Safety mechanisms and auto-close options for delta-neutral funding strategies: pre-entry gates, margin tiers, exit triggers, ADL protection, and kill switch."
+---
+
+**Use this when:** You want to understand how we protect your capital, what we check before entering, when we reduce or close, and how we handle ADL and emergencies.
+
+We run a layered safety system so that one bad trade or one tail event doesn’t blow up the book. Pre-entry gates, margin tiers, automatic exit triggers, ADL handling, and a kill switch all work together. **Auto-close** kicks in at the Emergency margin tier and when certain exit triggers fire, we’d rather exit and live to trade another day than hope and hold.
+
+## Pre-Entry Safety Gates
+
+We run these **before** opening any position. If **any** gate fails, we skip. Missing a trade is better than entering a bad one.
+
+| Gate | What It Checks | Pass Condition |
+| :--- | :--- | :--- |
+| **Funding profitability** | Is the funding diff worth it? | Current diff > 80th percentile of 30-day history; funding positive ≥3 intervals in a row |
+| **Trade profitability** | Does the spread allow profit after costs? | Net entry cost under max acceptable (e.g. 0.05%); break-even under 48h |
+| **Cross-market spread (S5)** | Is spread wide enough for execution? | Current spread above rolling 20-period mean |
+| **Open interest crowding** | Is the trade too crowded? | OI percentile under 95 |
+| **Volatility circuit breaker** | Has price moved too much lately? | Recent move under 2× historical vol and under 5% absolute |
+| **Basis Z-score** | Is perp premium overstretched? | Z-score under +2 |
+| **Liquidation buffer** | Enough margin cushion after entry? | Initial buffer > max(15%, 2× 30d realized vol) |
+| **Insurance fund** | Is the exchange’s safety net healthy? | Insurance balance > 50% of 30d average |
+| **ADL level** | How close are we to ADL risk? | ADL indicator ≤ 3 (out of 5) |
+| **Oracle freshness** | Is the price feed up to date? | Within threshold (e.g. Pyth 60s, HL 30s, Stork 120s) |
+| **Order book depth** | Can we exit if we need to? | Depth within 50 bps > 2× position size on **both** venues |
+| **Leverage** | Hard cap on leverage | ≤ 3x (max 5x only for BTC/ETH) |
+
+**Pre-entry stress simulation** (we run this before every entry):
+
+1. Price drops 15% in 1h, what happens to margin on the losing leg?
+2. Funding flips negative for 48h, what’s net PnL?
+3. ADL hits our profitable leg, are we left naked?
+4. Slippage doubles, is break-even still under 48h?
+
+If **any** of these is unacceptable, we **do not enter**.
+
+## Four-Tier Margin Defense
+
+We don’t wait until we’re at the edge. We act in tiers so we have time to react. **Auto-close** is at Tier 4 (Emergency).
+
+| Tier | Margin Ratio | What We Do |
+| :--- | :--- | :--- |
+| **1 – Healthy** | > 300% | Poll every 10s; just monitor; no action |
+| **2 – Warning** | 200–300% | Alert; **stop new entries**; tighten take-profit; poll every 5s; show “price $X → Tier 3” |
+| **3 – Danger** | 150–200% | **Reduce position 25–50%** (IOC, both legs); add collateral if needed; cancel all orders; poll every 2s |
+| **4 – Emergency** | under 150% | **Close everything** (market); close the less reliable venue first, then the other; accept slippage; retry the first up to 3× if needed; then disable trading until we’ve reviewed |
+
+## Automatic Exit Triggers
+
+These can trigger **exit both legs** or **close all** (that’s the auto-close behaviour):
+
+- **Funding inversion**: If the rate diff drops below our stop-loss threshold, we exit both legs. For brand-new positions (open &lt; 2 funding periods), we exit on **any** inversion.
+- **Delta drift**: If |delta_pct| > 1% we rebalance; if > 5% we close both legs.
+- **Daily drawdown limit**: e.g. above 3% we exit or reduce.
+- **Consecutive errors**: e.g. 3 failures and we go exit-only.
+- **Oracle staleness**: If the feed is too old, we emergency close.
+- **Insurance fund depletion**: If it drops below 50% of 30d average, we exit.
+- **Take profit**: When the target is hit, we close both legs.
+
+## ADL Protection
+
+ADL (auto-deleveraging) is **portfolio-blind**: the exchange doesn’t know you’re hedged. It can close your **profitable** leg and leave the other **naked**. That’s the single most dangerous thing for delta-neutral strategies.
+
+**What we do:**
+
+- Keep leverage at **2–3x** so our ADL priority score stays lower.
+- **Take profits every 24–72h** to reset ADL score.
+- **Monitor ADL every 30s**; at 4/5 we reduce, at 5/5 we exit.
+- **If ADL fires on one leg** we **immediately** close the other at **market**. We don’t re-enter for 1–4 hours.
+
+We also diversify: e.g. no more than 25% on any single venue, 15% on Hyperliquid, 10% on Drift, 10% on Pacifica or Lighter, and 15–25% in reserve.
+
+## Kill Switch
+
+The kill switch runs in a **separate process** from the trading engine so it can still act if the engine hangs.
+
+- **Trading engine**: Before every order it checks a shared flag; if the flag says KILLED it cancels all, closes all, and halts.
+- **Kill switch**: Sets the flag and can also send cancel-all and close-all directly to the exchanges.
+- **Levels**: We can kill per-strategy, per-exchange, or globally.
+- **Heartbeat**: The kill switch pings every 5s; if the engine hasn’t seen a heartbeat in 30s it self-kills and alerts.
+- **Auto triggers** (examples): daily drawdown above 3%; any API unreachable above 5 min; margin ratio under 150%; net delta above 10%; or the kill switch process itself failing.
+
+## Optional Advanced Safety
+
+- **Exchange-side protective stops**: We can place GTC stop-loss on each leg (e.g. ±15% from entry) on the exchange. Those survive a bot crash; they’re the only thing that still works if the software is completely down.
+
+- **Graduated confidence**: Instead of pass/fail, each gate can output a score (0–100); we scale position size by that score. Any single gate below 20 means no entry (hard veto).
+
+- **Graceful degradation**: We can step down: Full → Defensive (no new entries) → Exit-only → Emergency (market close all) → Frozen (only exchange-side stops active).
+
+- **Warm-up on startup**: We sync positions and orders with the exchanges and run read-only for 5 minutes before allowing trading.
+
+- **Rate limit budget**: We reserve a fixed share (e.g. 40%) of API capacity for safety-critical calls (positions, margin, emergency orders) and never cut that share when under pressure.
+
+We’re slowly building these features out, with **auto-close** live first. For now we close the worse leg based on the liquidation threshold.
+
+For how these safeguards fit with [Overview](/strategies/overview), [Perp to perp](/strategies/perp-to-perp), and [Spot to perp](/strategies/spot-to-perp), use the links to jump between pages.

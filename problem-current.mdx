@@ -78,3 +78,13 @@ It's like having money in 10 different bank accounts with no way to see your tot
 **Our Solution:** One portfolio view for everything. All your positions across all protocols, all in one place. See your total performance, track your history, manage everything from one dashboard. Simple.
 
 ---
+
+## Strategies
+
+### The Funding-Without-Direction Problem
+
+**The Problem:** Earning from perpetual funding rates sounds great until you realize most setups leave you exposed. You want to harvest funding without betting on price, but doing it safely means juggling two legs, margin, ADL risk, and execution across venues. One bad fill or one venue’s auto-deleveraging can blow up the hedge.
+
+**Our Solution:** We run delta-neutral funding strategies (perp-to-perp and spot-to-perp) on Hyperliquid, Drift, Pacifica, and Lighter. Pre-entry gates and stress checks decide whether we enter; margin tiers and a kill switch decide when we reduce or exit. You get exposure to funding yield with risk controls built in. See [Strategies](/strategies/overview) for the full picture.
+
+---

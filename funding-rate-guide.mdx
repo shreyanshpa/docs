@@ -1,0 +1,251 @@
+---
+title: "Funding Rate Guide"
+description: "A complete guide to perpetual funding rates: how they work, how they're calculated, and how to use them for carry and delta-neutral strategies."
+---
+
+# What Is Funding Rate
+
+Funding rate is a periodic payment between longs and shorts in perpetual futures.
+
+**Payment is calculated as:**
+
+Position Notional × Funding Rate
+
+**Funding Rate ≈ Premium Component + Interest Component**
+
+- If perp price > spot → funding is **positive** → longs pay shorts.
+- If perp price < spot → funding is **negative** → shorts pay longs.
+
+It is not fixed. It updates every interval (commonly 1h or 8h depending on venue). The rate is derived from:
+
+1. **Premium index** (perp price vs spot index deviation)
+2. **Interest rate component** (usually small, often constant)
+3. **Clamp limits** and exchange-specific formula
+
+When traders aggressively long, perp trades above spot → funding increases positive. When traders aggressively short, funding turns negative.
+
+Perpetual funding is paid at discrete timestamps. If your position is open at the exact funding snapshot time, you pay or receive the full funding amount for that interval, regardless of how long you held it during that interval.
+
+The funding rate shown before a timestamp is usually calculated from the average premium over the previous period. For example, the payment at 08:00 is based on the prior 8h premium behaviour.
+
+- Funding is a function of premium.
+- Premium is a function of order flow imbalance.
+- Order flow imbalance is a function of positioning behaviour.
+- Positioning behaviour is visible through OI and price/OI delta.
+
+**Funding is the price of leverage imbalance.**
+
+---
+
+# How Funding Is Calculated and Given
+
+Funding is driven by the deviation between the perpetual contract and the spot index. Premium increases when perp price deviates from spot. The funding formula reacts to this premium.
+
+Large aggressive volume moves perp price away from spot. That deviation increases premium. That premium increases funding.
+
+Clamp mechanisms limit how extreme funding can go in a single interval. Different exchanges use different funding interval lengths (1h vs 8h), different premium calculation windows (TWAP vs instantaneous mark price), and different caps.
+
+Funding rate shown before the timestamp is based on **prior premium behaviour**, not future expectations.
+
+## Funding Rate Comparison Table
+
+| Feature | Drift | Hyperliquid | Pacifica | Lighter |
+| :--- | :--- | :--- | :--- | :--- |
+| **Funding interval** | 1 hour | 1 hour (1/8 of 8h rate) | 1 hour | 1 hour |
+| **Sampling method** | EMA on every trade | Every 5 seconds | Every 5 seconds | Every minute (random) |
+| **Hourly cap** | ±0.125% to ±0.4167% | ±4% | ±4% | ±0.5% |
+| **Interest rate (8h)** | N/A (formula-based) | 0.01% fixed | 0.01% fixed | Per-market parameter |
+| **Peer-to-peer?** | Yes (with Rebate Pool) | Yes | Yes | Yes |
+| **Oracle** | Pyth | Validator median | Not specified | Stork |
+
+---
+
+# Open Interest (OI) and What It Tells You
+
+Open interest represents total outstanding contracts.
+
+- **Rising OI + negative funding** = new shorts entering.
+- **Falling OI + negative funding** = shorts closing.
+- **Rising OI + funding moving toward zero** = new longs entering.
+
+**OI delta vs price delta:**
+
+| Price | OI | Interpretation |
+| :--- | :--- | :--- |
+| Up | Up | New longs dominant |
+| Up | Down | Short squeeze |
+| Down | Up | New shorts |
+| Down | Down | Long liquidation |
+
+High OI percentile combined with extreme funding suggests a crowded trade. Low volume with high OI implies fragile positioning. Small moves can force liquidations and spike funding volatility.
+
+- Rising OI with rising price indicates new leveraged longs entering.
+- Rising OI with falling price indicates new shorts entering.
+
+If OI is high and skewed to one side, the order book imbalance pushes perp price away from spot, increasing premium and therefore increasing funding.
+
+**OI is commitment.**
+
+---
+
+# Volume and Why It Matters
+
+Volume affects funding **indirectly** through price impact. Funding reacts to premium. Premium changes when trades move perp price.
+
+- If a single large participant **buys aggressively**: perp price rises above spot → premium increases → funding increases.
+- If they use **passive limit orders**: minimal price impact → funding barely moves.
+
+**Funding responds to aggressive imbalance, not raw volume alone.**
+
+Volume matters in two ways:
+
+1. **Liquidity depth**: Thin book → small trades move price → funding volatile.
+2. **Turnover relative to OI**: High volume with flat OI = position rotation, not imbalance expansion. High volume + rising OI = new exposure entering.
+
+**Volume is intensity.**
+
+---
+
+# Market Conditions: Long Squeeze, Short Squeeze, and Crowding
+
+**Short squeeze condition:** Price rising + OI high + funding negative → shorts trapped → forced buying.
+
+**Long squeeze condition:** Price falling + OI high + funding positive → longs trapped → forced selling.
+
+| Condition | Meaning | Risk |
+| :--- | :--- | :--- |
+| **High positive funding + rising OI** | New longs entering aggressively. Crowded long trade. Funding elevated but unstable. | Risk of long squeeze. |
+| **High positive funding + falling OI** | Longs closing. | Funding likely to compress soon. |
+| **Negative funding + rising OI** | New shorts entering. Short crowd building. | If too crowded → short squeeze risk. |
+| **Negative funding + falling OI** | Shorts exiting. Discount resolving. | Opportunity fading. |
+
+- High turnover relative to OI implies unstable funding.
+- Low volume with high OI implies crowded, fragile positioning.
+- Funding spikes compress quickly. Sustained 20–40% annualized is more realistic than 200%.
+- High negative funding attracts longs and removes negative funding. High positive funding attracts shorts and removes positive funding.
+- **Funding persistence duration** determines real profitability.
+
+---
+
+# Expected Net Carry
+
+**Net yield = funding − borrow APR − trading fees − execution cost.**
+
+Let: **F** = annualized funding, **L** = leverage, **C** = capital
+
+**Gross return ≈ F × L**
+
+High leverage amplifies yield but shrinks liquidation distance. High leverage can destroy EV even with high funding.
+
+What determines how much you can earn:
+
+1. Funding persistence
+2. Net spread after borrow + fees
+3. Leverage used
+4. Survival probability
+5. Capital allocation efficiency
+
+Capital efficiency matters. If you must post full spot capital and separate perp margin, real leverage may be lower than assumed.
+
+---
+
+# How to Make Sure Leverage Is Correct
+
+Liquidation distance shrinks as leverage increases.
+
+- Maintain leverage such that **liquidation distance is comfortably above recent volatility**.
+- Maintain **>2× liquidation buffer** of recent 30-day volatility.
+
+For **delta-neutral:**
+
+**Delta = Spot Notional − Perp Notional**
+
+Rebalance if |Delta| exceeds your tolerance band.
+
+Even delta-neutral strategies can face operational liquidation if leverage on one leg is miscalculated. Liquidation cascades can compress funding rapidly and destabilize the structure of your hedge. Leverage amplifies convex downside.
+
+---
+
+# Fees and How They Matter
+
+Fees affect your **net carry**, not the funding rate itself. Entry and exit fees follow the maker/taker model.
+
+- **Maker**: Fee if your order adds liquidity (limit order resting on book).
+- **Taker**: Fee if your order removes liquidity (market order fills instantly).
+
+Frequent re-hedging destroys yield. Fee tier drop risk exists: reduced activity may push you into a higher fee tier next month.
+
+**Net APY = Annualized Funding − Trading Fees − Slippage − Borrow Costs.**
+
+Funding might be 0.01% per interval. Round-trip slippage could be 0.05%. Small edge disappears quickly under fee drag.
+
+## Fee Comparison Table
+
+| Feature | Drift | Hyperliquid | Pacifica | Lighter |
+| :--- | :--- | :--- | :--- | :--- |
+| **Base taker fee** | 0.035% | 0.045% | 0.040% | **0% (Standard)** |
+| **Base maker fee** | −0.0025% (rebate) | 0.015% | 0.015% | **0% (Standard)** |
+| **Best taker fee** | 0.012% | 0.024% | 0.028% | 0.0196% (Premium) |
+| **Best maker fee** | −0.0035% | −0.003% | 0.000% | 0.0028% (Premium) |
+| **Volume window** | 30-day | 14-day (weighted) | 14-day | N/A (account type) |
+| **Token discount** | Up to 40% (DRIFT) | Up to 40% (HYPE) | None listed | Up to 30% (LIT) |
+| **Liquidation fee** | - | - | - | Up to 1% |
+
+---
+
+# Slippage
+
+Slippage is the implicit cost due to order book depth.
+
+**Slippage % ≈ (Execution Price − Mid Price) / Mid Price**
+
+If trade size exceeds liquidity near mid-price, execution price worsens. Slippage scales with trade size relative to order book depth and volatility.
+
+In **delta-neutral:** You buy spot and short perp. If spot fills at one price and perp fills worse, you create immediate basis distortion. Your hedge is imperfect from entry. Liquidity shock increases slippage and raises rebalancing costs.
+
+---
+
+# ADL and Partial Liquidation
+
+Auto-deleveraging (ADL) and partial liquidation remove leveraged positions mechanically. Funding exists because the perpetual price trades at a premium or discount to spot, typically driven by crowded leverage and high OI skew.
+
+When price moves sharply against the crowded side, margin breaches trigger **partial liquidation**.
+
+- **If longs are liquidated:** Forced selling pushes perp downward. Premium compresses. Basis narrows. Funding drops rapidly, often flipping sign.
+- If losses exceed insurance coverage, **ADL** forcibly reduces profitable opposing traders. This shrinks OI further and accelerates premium collapse. The funding regime disappears because imbalance is forcibly reset.
+
+**For a delta-neutral trader (long spot, short perp collecting positive funding):**
+
+- High positive funding reflects crowded longs. If price falls, long liquidations push perp below spot. Funding compresses or turns negative.
+- If ADL triggers, part of your profitable short perp can be force-closed. Your spot remains intact. You become **unintentionally net long**. Funding income stops. Directional exposure appears. The position changes from carry extraction to directional risk plus rebalance cost.
+
+**Structural response:** Maintain lower leverage on perp leg. Monitor OI percentile and funding velocity. Avoid entering at extreme crowding. Automate delta rebalancing.
+
+ADL changes funding because imbalance is mechanically removed. Your position changes because hedge symmetry breaks.
+
+---
+
+# Risk Scenarios to Model
+
+| Scenario | What happens |
+| :--- | :--- |
+| **Funding collapse** | Funding turns negative after entry. Net APY becomes negative. |
+| **OI unwind** | OI drops sharply. Funding normalizes. Carry disappears. |
+| **Liquidity shock** | Slippage widens. Hedge costs rise. |
+| **Basis compression** | Perp converges to spot. Premium disappears. |
+
+**Stress simulation:** Model funding goes to zero. Model funding flips negative. Model OI drops 30%. Model slippage doubles. **If Net APY under stress < 0, do not enter.**
+
+**Max Drawdown (MDD):** Largest % drop from highest equity point to lowest subsequent point before new high. Track cumulative PnL. If drawdown exceeds your threshold, reduce or close position.
+
+---
+
+# Practical Filters for Better Entry
+
+| Filter | Rule |
+| :--- | :--- |
+| **Funding threshold** | Enter only if funding percentile > 80th percentile and persistence above threshold. |
+| **OI crowding** | Avoid >95th percentile OI. |
+| **Volume-to-OI stability** | Require turnover/OI within stable band. |
+| **Basis Z-score** | Enter only when basis Z-score > statistical threshold (e.g. +2). |
+| **Funding flip detector** | Velocity = Current Funding − Previous Funding. If sign-change probability increases, reduce exposure. |

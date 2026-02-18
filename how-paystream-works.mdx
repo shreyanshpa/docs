@@ -19,3 +19,5 @@ description: "Paystream is powered by two core components: a Peer-to-Peer (P2P) 
 - **Instantaneous withdrawals**: Lenders can withdraw their capital instantly at any time. Paystream enables this by combining unmatched funds, borrower collateral, and other liquidity sources to fulfill withdrawals.
 
 - **Leveraged Liquidity Provisioning**: Users can invest in liquidity pools like CLM (concentrated liquidity markets), DLMM or DAMM  with leverage ranging from 1x to 4x by borrowing additional capital through Paystream and paying interest on the borrowed funds. This LLP layer will serve as both an incentive for borrowers and a fallback mechanism for unmatched P2P funds.
+
+- **Strategies**: Paystream runs delta-neutral funding strategies (perp-to-perp and spot-to-perp) to earn from perpetual funding rates without directional risk. We use Hyperliquid, Drift, Pacifica, and Lighter, with pre-entry safety gates, margin tiers, and a kill switch. See [Strategies](/strategies/overview) for the full picture.

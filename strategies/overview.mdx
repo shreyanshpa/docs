@@ -1,0 +1,36 @@
+---
+title: "Overview"
+description: "Delta-neutral funding strategies: what they are, what we aim to achieve, and the safety and liquidation measures we use."
+---
+
+Ever wondered how some traders earn from perpetual markets without betting on price? That’s what delta-neutral funding strategies are about. You’re not guessing up or down, you’re capturing the **funding rate** that exchanges use to keep perp prices in line with spot. When the perp trades above spot, longs pay shorts; when it trades below, shorts pay longs. Think of funding as the *price of that imbalance*. Our strategies aim to harvest that flow while staying hedged so that price moves cancel out across your legs.
+
+## What We're Trying to Achieve
+
+The idea is simple: **enter and exit** the position for less than the funding income it generates. That comes down to a few things:
+
+- **Staying hedged**: Both legs move with the market, so price risk nets out and you’re left with the funding spread.
+- **Keeping execution tight**: We target low execution cost (e.g. sub-10 bps where possible) so fees and slippage don’t eat the edge. Net carry is funding minus borrow cost, fees, and execution; we care about that net number.
+- **Respecting tail risk**: ADL can close one leg and leave you naked, oracles can misprice, and liquidity can dry up. So the safety layer, pre-entry gates, margin tiers, kill switch, and conservative leverage, is as important as the funding spread itself.
+
+Think of it as: we only take the trade if the math works and the safety checks pass. Missing a trade is better than entering a bad one.
+
+## Safety Measures We Have
+
+We only open a position after **pre-entry gates** pass: funding must be worth it and profitable after costs, spread and OI must be within limits, and we run a **stress simulation** (e.g. price drop, funding flip, ADL hit, slippage spike). Once in a trade, we monitor margin, PnL, delta, and depth in real time and alert when we approach warning or danger tiers. Automatic exits, ADL handling, and the kill switch are all part of the same framework. You can read more in [Safeguard](/strategies/safeguard).
+
+## Liquidation Measures We Have
+
+The exchange doesn’t net your legs: each perp margin stands on its own, so we size and keep a **liquidation buffer** (e.g. 15% or 2× recent vol) and allow for **basis divergence** in spot–perp. We use a **four-tier margin defense**: we monitor when healthy, alert and tighten when warning, reduce size in danger, and **auto-close** everything at emergency. We also treat **ADL** as a top risk (it can close your hedged leg and leave the other naked), so we keep leverage low and react immediately if ADL fires. You can read more in [Safeguard](/strategies/safeguard).
+
+## Strategy Types
+
+**Use this when:** You want to pick the right structure for your funding play, two perps vs spot + perp.
+
+We support two main approaches:
+
+- **[Perp to perp](/strategies/perp-to-perp)**: Two perpetual legs on different venues; you earn the funding rate *difference*. No spot leg, so no portfolio margin offset; each leg is margined separately. Suited when the best edge is between two perp venues.
+
+- **[Spot to perp](/strategies/spot-to-perp)**: Long spot and short perp to collect funding. Same-venue with portfolio margin gives the best capital efficiency (spot profit can offset perp margin); cross-venue gives more funding choice but adds transfer risk and no margin netting.
+
+For safety mechanisms and auto-close behaviour in detail, see [Safeguard](/strategies/safeguard).

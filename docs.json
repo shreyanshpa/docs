@@ -18,8 +18,7 @@
             "pages": [
               "introduction",
               "how-paystream-works",
-              "problem-current",
-              "essentials/code"
+              "problem-current"
             ]
           },
           {
@@ -35,6 +34,15 @@
             "pages": [
               "router",
               "optimizers"
+            ]
+          },
+          {
+            "group": "Strategies",
+            "pages": [
+              "strategies/overview",
+              "strategies/perp-to-perp",
+              "strategies/spot-to-perp",
+              "strategies/safeguard"
             ]
           },
           {
@@ -59,6 +67,7 @@
           {
             "group": "Resources",
             "pages": [
+              "funding-rate-guide",
               "faq"
             ]
           },
