@@ -1,26 +1,24 @@
 ---
-title: " What is Paystream?"
+title: "What is Paystream?"
 ---
-Paystream is a peer‑to‑peer lending protocol with its own leveraged engine on Solana that maximizes APYs by directly matching borrowers and lenders. Idle capital is routed to the LLP lending pool and fallback pools, ensuring zero idle capital and eliminating APY spread. The LLP pool amplifies returns on idle liquidity while preventing liquidity fragmentation. Leveraged Liquidity Provisioning in Paystream enables users to deploy funds into AMMs with leverage, unlocking amplified returns.
-Visit [Paystream.finance](https://Paystream.finance) to get started with our platform.
+**Maximize yield on every dollar.** That's what we're built for. Your capital should always be earning, whether that's LP fees, funding rate arbitrage, or delta-neutral yield. Paystream gives you one place to do it all on Solana.
 
-## Lend and Borrow
+## One Terminal, Every Yield Source
 
-Paystream's P2P lending engine enables direct matching between lenders and borrowers, eliminating intermediaries and optimizing rates. Lenders can earn higher yields by directly connecting with borrowers, while borrowers access capital at competitive rates. The system ensures zero idle capital by routing unmatched funds to high-yield pools, maximizing efficiency for all participants.
+DeFi today is fragmented. Different protocols, different rates, different tools. Paystream brings it together. The [LP Terminal](/lp-terminal/what) lets you create and manage liquidity positions across Raydium and Meteora from a single interface. Single-token entry and exit. Custom strategies. No more juggling a dozen apps.
 
-## Leveraged Positions 
-LLP enables users to leverage their liquidity positions in DeFi pools by borrowing capital from Paystream’s leveraged lending pool. This allows them to scale positions beyond their initial capital and earn amplified yield.
+We also run **delta-neutral funding strategies** so you can earn from perpetual funding rates without betting on price. Farm funding rate gaps across perp DEXs, each with different settlement intervals. Market-neutral. Automated. Or skip the manual work and deposit into our [vault](/strategies/vault) and let the protocol handle opening, closing, and rebalancing. See [Strategies](/strategies/overview) for the full picture.
 
-Lenders benefit by earning higher returns on their supplied capital, creating a self‑sustaining capital flywheel.
+## The Edge No Single Protocol Has
 
-The LLP lending pool also serves as a primary destination for idle liquidity, ensuring maximum yield and zero idle capital. Additionally, it consolidates liquidity, removing fragmentation across the protocol
-## Routing : zero idle liquidity
-Paystream routes idle capital  to earn maximum yield. When funds are not actively matched in the P2P market, the routing engine automatically deploys them into the LLP lending pools and other high-performing protocols such as Kamino and similar platforms. Router re-routes capital continuously, ensuring maximum yield per dollar on idle liquidity.
+**Custom LP strategies with single-click execution.** Build, deploy, and manage any LP position across Raydium and Meteora. Full control.
 
-## LP Terminal
+**Multiple strategies, one position.** LP fees, funding arb, and delta-neutral yield can run at the same time. No other tool combines all three.
 
-Paystream LP Terminal is a unified platform to manage liquidity provisioning positions across Meteora and Raydium from a single interface. It consolidates fragmented liquidity tooling on Solana into one system, allowing users to create and manage LP positions across all supported pool types (DAMM, DLMM, CLMM, CPMM) with integrated analytics, automation, copy trading, and portfolio management.
+**Every dollar is deployed.** Margin earns while your position is open. Collateral earns while your trade runs. Nothing sits idle.
 
-## Strategies
+**Built on fragmented markets.** Different rates, different intervals, across every venue. The spread is structural. So is the return.
 
-Paystream runs **delta-neutral funding strategies** so you can earn from perpetual funding rates without betting on price. We go long and short in a hedged way: when funding is positive, you collect it; when it flips, we have strict gates and auto-close so one bad trade doesn’t blow up the book. We support **perp-to-perp** (two perp legs on different venues, harvesting the funding *difference*) and **spot-to-perp** (long spot, short perp, same-venue for best capital efficiency or cross-venue for better rates). Every position is protected by pre-entry safety gates, margin tiers, ADL handling, and a kill switch. See the [Strategies](/strategies/overview) section for the full picture.
+---
+
+Visit [Paystream.finance](https://Paystream.finance) to get started. To understand the problems we're solving, see [Problem in existing solutions](/problem-current). To see how it all works under the hood, see [How Paystream works](/how-paystream-works).

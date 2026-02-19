@@ -1,23 +1,20 @@
 ---
 title: "How Paystream works?"
-description: "Paystream is powered by two core components: a Peer-to-Peer (P2P) Matching Engine and a set of integrated Underlying Markets.
-
-"
+description: "How Paystream works: delta-neutral strategies, liquidity provisioning, and safety."
 ---
 
-![Workflow 1](./images/workflow-1.png)
+Paystream today focuses on two main areas: **delta-neutral strategies** and **liquidity provisioning** via the LP Terminal. Here’s how each works at a high level.
 
+## Strategies
 
-- **P2P Matching Engine**: Borrowers are directly matched with lenders in real-time, ensuring optimal interest rates for both parties without relying solely on pooled liquidity.
+We run **delta-neutral funding strategies** so you can earn from perpetual funding rates without betting on price. You’re not going long or short directionally; you’re hedged so that price moves cancel out across your legs and you keep the funding spread.
 
-- **Routing idle liquidity**: When a direct match isn't available, the Router directs idle liquidity to LLP pools or fallback pools, ensuring the highest yield per dollar and eliminating idle capital
+We support two structures: **perp-to-perp** (two perpetual legs on different venues, earning the funding rate *difference*) and **spot-to-perp** (long spot and short perp to collect funding). We use Hyperliquid, Drift, Pacifica, and Lighter. Before we enter any trade we run pre-entry safety gates and a stress simulation; once in a position we use margin tiers, ADL handling, and a kill switch so one bad move doesn't blow up the book. For the full picture, see [Strategies](/strategies/overview).
 
-- **Collateralised Borrowing**: Borrowers deposit collateral to borrow funds. This collateral is deployed into the underlying protocol so that it earns while backing the loan, maximising capital efficiency.
+**Vaults** give you the same yield without the manual work. You deposit USDC and receive **share tokens** that track your stake. The protocol deploys your capital into delta-neutral positions and rebalances automatically as funding rates shift across venues — opening, closing, and moving legs to chase the best yield. Your share price rises as the vault earns; when you withdraw, you burn shares and get back USDC plus your accrued yield. No positions to manage, no execution to worry about. See [Vault](/strategies/vault) for deposits, withdrawals, and risks.
 
-- **liquidation**: If a borrower fails to make repayments, a proportional portion of their collateral is automatically liquidated. This ensures the protocol stays solvent and protects lenders from bad debt.
+## Liquidity provisioning (LP Terminal)
 
-- **Instantaneous withdrawals**: Lenders can withdraw their capital instantly at any time. Paystream enables this by combining unmatched funds, borrower collateral, and other liquidity sources to fulfill withdrawals.
+The **LP Terminal** is where you manage liquidity provisioning on Solana in one place. Instead of jumping between Meteora, Raydium, and multiple analytics tools, you get a single interface to create and manage LP positions across supported pool types (DAMM, DLMM, CLMM, CPMM).
 
-- **Leveraged Liquidity Provisioning**: Users can invest in liquidity pools like CLM (concentrated liquidity markets), DLMM or DAMM  with leverage ranging from 1x to 4x by borrowing additional capital through Paystream and paying interest on the borrowed funds. This LLP layer will serve as both an incentive for borrowers and a fallback mechanism for unmatched P2P funds.
-
-- **Strategies**: Paystream runs delta-neutral funding strategies (perp-to-perp and spot-to-perp) to earn from perpetual funding rates without directional risk. We use Hyperliquid, Drift, Pacifica, and Lighter, with pre-entry safety gates, margin tiers, and a kill switch. See [Strategies](/strategies/overview) for the full picture.
+You can discover pools by category and metrics, find the best pool for a token pair, automate with presets and rebalancing, set take profit and stop loss, copy other wallets’ LP positions, and track everything in one portfolio view. The goal is to make providing liquidity on Solana as simple as possible from a single platform. For details, see [LP Terminal](/lp-terminal/what).

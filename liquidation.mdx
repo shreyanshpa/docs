@@ -3,14 +3,17 @@ title: "Liquidation"
 description: "How liquidations are handled in Paystream."
 ---
 
+This section is temporarily hidden.
+
+{/*
 ![Liquidation Workflow](./images/liquidation-workflow.png)
 
 # Liquidation Mechanism in Paystream
 
 
-Liquidation is a critical component of Paystream’s risk management system. It ensures that lender funds remain secure, even in volatile market conditions. When a borrower's position becomes undercollateralized, liquidation is triggered to prevent the protocol from incurring bad debt.
+Liquidation is a critical component of Paystream's risk management system. It ensures that lender funds remain secure, even in volatile market conditions. When a borrower's position becomes undercollateralized, liquidation is triggered to prevent the protocol from incurring bad debt.
 
-Paystream employs a liquidation mechanism, triggered when a borrower’s Loan-To-Value (LTV) ratio exceeds a predefined threshold known as the Liquidation LTV (LLTV). This system is designed to be both reliable and efficient.
+Paystream employs a liquidation mechanism, triggered when a borrower's Loan-To-Value (LTV) ratio exceeds a predefined threshold known as the Liquidation LTV (LLTV). This system is designed to be both reliable and efficient.
 
 To enhance this process, Paystream also operates an in-house automated liquidator bot. This bot continuously monitors the protocol and acts alongside external liquidators to ensure timely and consistent liquidation execution, especially in cases where external participation may be delayed or insufficient.
 
@@ -18,7 +21,7 @@ To enhance this process, Paystream also operates an in-house automated liquidato
 
 ## Understanding LTV (Loan-To-Value)
 
-LTV represents the ratio of borrowed funds to the value of the collateral. It’s the primary metric used to assess the health of a borrowing position.
+LTV represents the ratio of borrowed funds to the value of the collateral. It's the primary metric used to assess the health of a borrowing position.
 
 **LTV Formula:**
 
@@ -38,7 +41,7 @@ Collateral Value = Collateral Amount × Oracle Price / Oracle Price Scale
 
 ## Health Factor
 
-The Health Factor is a normalised measure of a position’s risk. A value greater than 1.0 indicates a safe position, while values below 1.0 mark it as liquidatable.
+The Health Factor is a normalised measure of a position's risk. A value greater than 1.0 indicates a safe position, while values below 1.0 mark it as liquidatable.
 
 **Health Factor Formula:**
 
@@ -56,7 +59,7 @@ Where:
 The liquidation system ensures that Paystream remains solvent by allowing unhealthy positions to be corrected swiftly.
 
 ### When Does Liquidation Occur?
-A borrower’s position becomes eligible for liquidation when their LTV exceeds the LLTV. This can happen due to:
+A borrower's position becomes eligible for liquidation when their LTV exceeds the LLTV. This can happen due to:
 - A drop in collateral value
 - An increase in debt (e.g., from accrued interest)
 - Both of the above
@@ -70,10 +73,11 @@ If a borrower supplies $100 of collateral in a market with an LLTV of 86%:
 
 ## How Liquidation Works
 
-When a position becomes liquidatable, any external liquidator can repay a portion (or all) of the borrower’s debt.
+When a position becomes liquidatable, any external liquidator can repay a portion (or all) of the borrower's debt.
 
-In return, they receive a proportional amount of the borrower’s collateral, along with a liquidation incentive (bonus).
+In return, they receive a proportional amount of the borrower's collateral, along with a liquidation incentive (bonus).
 
-If no external liquidator acts promptly, Paystream’s internal automated liquidator bot steps in to execute the liquidation. This ensures system stability and protects lenders against prolonged exposure to risk.
+If no external liquidator acts promptly, Paystream's internal automated liquidator bot steps in to execute the liquidation. This ensures system stability and protects lenders against prolonged exposure to risk.
 
-By combining both open participation and automated execution, Paystream delivers a robust and dependable liquidation process. 
+By combining both open participation and automated execution, Paystream delivers a robust and dependable liquidation process.
+*/}

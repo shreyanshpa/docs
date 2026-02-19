@@ -1,0 +1,83 @@
+---
+title: "Vault"
+description: "Deposit USDC, earn yield from delta-neutral funding. The vault handles everything, no manual positions, no rebalancing."
+---
+
+Don’t want to manage perp legs, margin, or rebalancing yourself? The vault is for you. You deposit USDC, we put it to work using our delta-neutral funding strategy, and your deposit grows over time. You withdraw whenever you want, your original amount plus the yield it earned. No perpetuals knowledge needed, no manual steps after depositing.
+
+## How It Works (Simple Version)
+
+1. You deposit USDC into the vault
+2. You receive vault share tokens (proof of your ownership)
+3. Your USDC is deployed into yield-generating positions
+4. Yield flows back, your shares become worth more
+5. You burn your shares anytime to get back USDC plus earned yield
+
+The protocol handles opening, closing, and rebalancing. Your job is to deposit and withdraw when it suits you.
+
+## What Are Share Tokens?
+
+When you deposit, you get share tokens. They represent your slice of the vault, like buying into a fund. The share price starts at $1.00 and rises as the vault earns yield.
+
+**Example:**
+- You deposit $1,000 when share price is $1.00 → you get 1,000 shares
+- Vault earns yield → share price rises to $1.10
+- You withdraw all 1,000 shares → you receive $1,100
+- Your profit: $100
+
+If someone else deposits later when the share price is already $1.10, they get fewer shares per dollar, but their shares grow at the same rate from there. Earlier depositors benefit from being in longer.
+
+## What You Can Do
+
+### Deposit
+
+Put USDC into the vault. You receive share tokens instantly. Minimum and maximum amounts depend on vault configuration; deposits may be paused when the vault is at capacity.
+
+### Withdraw
+
+Burn your share tokens to get USDC back. The amount you receive depends on the current share price.
+
+Two modes exist, depending on vault configuration:
+
+**Instant withdrawal**: Burn shares and receive USDC immediately, if the vault has enough idle USDC. Best when you need quick access.
+
+**Request-based withdrawal**: Submit a withdrawal request (your shares lock), wait for the cooldown period, then complete. You can cancel the request anytime during the wait. Best for larger withdrawals or when the vault is actively managing liquidity.
+
+### Check Your Balance
+
+Your share token balance is in your wallet like any SPL token. To know what it’s worth in USDC:
+
+```
+Your USDC value = your shares × current share price
+```
+
+The share price is publicly visible on-chain at all times.
+
+## How Yield Is Generated
+
+The vault uses **delta-neutral funding strategies** to earn from perpetual funding rates. We run hedged positions so price moves cancel out across our legs; no directional exposure. When funding is positive, we collect; the vault turns those payments into yield.
+
+We manage positions in a way that **reduces risk and maximises return**. We apply the same safety mechanisms as our manual strategies: pre-entry gates, stress simulations, margin tiers, and a kill switch. We size and monitor for liquidation and ADL risk so one bad move doesn’t blow up the book. At the same time, we rebalance and rotate across venues and pairs to chase the highest funding rates. See [Safeguard](/strategies/safeguard) for how we protect positions and handle liquidation.
+
+## What Happens to Your Money
+
+Your USDC goes into the vault. You hold share tokens that track your ownership. The vault deploys that USDC into delta-neutral positions. Funding payments flow in. Yield returns to the vault and the share price goes up. When you withdraw, you burn shares and get USDC plus your share of the yield.
+
+## Fees
+
+| Fee | What it is |
+|-----|-----------|
+| **Management fee** | A small annual percentage on your deposited value. Taken over time, not as a lump sum. Already reflected in the share price. |
+| **Performance fee** | A percentage of the profit earned. Only charged on actual gains. If the vault doesn’t make money, you don’t pay this. |
+
+Both are baked into the share price. What you see is your net return. No hidden deductions.
+
+## Risks You Should Know
+
+| Risk | What it means |
+|------|---------------|
+| **Funding rate goes negative** | In bearish markets, the vault may earn less or briefly lose money. We pause or rotate to safer setups during these periods. |
+| **Withdrawal delay** | In request-based mode, you wait for the cooldown before accessing funds. |
+| **Smart contract risk** | As with any on-chain protocol, smart contracts carry risk. Audits reduce but don’t eliminate it. |
+| **Operator risk** | The vault operator manages positions off-chain and deploys funds into strategies. Trust in the operator is required. |
+| **Liquidity risk** | If most USDC is deployed, instant withdrawals may not be available until funds are returned. |

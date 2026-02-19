@@ -3,6 +3,9 @@ title: "Router"
 description: "Learn about Paystream's routing engine and how it manages idle liquidity."
 ---
 
+This section is temporarily hidden.
+
+{/*
 ![Router Workflow](./images/router.png)
 
 Paystream's **routing engine** acts as an intelligent liquidity optimizer that continuously monitors yield opportunities across supported lending and liquidity venues. Unlike traditional systems that hold funds in custody, the routing system never holds money itself; it simply directs capital to the most desirable locations to earn the highest yield per dollar invested.
@@ -11,7 +14,7 @@ Paystream's **routing engine** acts as an intelligent liquidity optimizer that c
 
 The routing engine operates as a capital allocation system that ensures **zero idle capital** by automatically reallocating funds from one venue to another based on key parameters such as APY, utilization rate, deposit limits, and available reserves. The system operates on a regular cadence checking rates hourly and rebalancing every few minutes,to ensure user's deposited assets are always earning the **higest yield possible**.
 
-When P2P matches cannot be made immediately, the router seamlessly channels funds to leveraged strategies and integrated protocols. The routing engine makes sure there is zero idle capital; **it's always either with a borrower or in a fallback pool earning yield**. 
+When P2P matches cannot be made immediately, the router seamlessly channels funds to leveraged strategies and integrated protocols. The routing engine makes sure there is zero idle capital; **it's always either with a borrower or in a fallback pool earning yield**.
 
 The primary routing destinations include the LLP lending pool for leveraged positions and integrated protocols like Drift, Kamino, MarginFi (Project 0), and Jupiter Lend. The routing system ensures that yield is deployed at the correct place and **rebalances when needed**, guaranteeing that every dollar of capital is continuously earning the highest possible yield, even when P2P matches aren't immediately available.
 
@@ -46,3 +49,4 @@ The primary routing destinations include the LLP lending pool for leveraged posi
 - **Zero Idle Capital**: Every dollar is always working to generate yield
 - **Automated Re-routing**: Instantly and seamlessly reallocates funds based on real-time opportunities,no manual intervention required
 - **Maximum Capital Utilization**: Deploys funds to the most efficient strategies available
+*/}

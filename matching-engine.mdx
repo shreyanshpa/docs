@@ -3,9 +3,9 @@ title: "Matching Engine"
 description: "How Paystream's matching engine works."
 ---
 
+This section is temporarily hidden.
 
-
-
+{/*
 Paystream's **peer-to-peer (P2P) matching engine** is the core mechanism that directly matches lenders and borrowers on the platform for more optimised interest rates.
 
 
@@ -15,9 +15,9 @@ Paystream's **peer-to-peer (P2P) matching engine** is the core mechanism that di
 ## How the Matching Engine Works
 
 
-Paystream’s matching engine can be viewed as a **priority queue** or a **pseudo-order book** for matching loans. However, unlike a traditional order book, users do *not* place bids or asks with specific interest rates. Instead, the protocol automatically determines a fair P2P interest rate (one that lies between the pool’s supply APY and borrow APY) and matches lenders to borrowers at that rate.
+Paystream's matching engine can be viewed as a **priority queue** or a **pseudo-order book** for matching loans. However, unlike a traditional order book, users do *not* place bids or asks with specific interest rates. Instead, the protocol automatically determines a fair P2P interest rate (one that lies between the pool's supply APY and borrow APY) and matches lenders to borrowers at that rate.
 
-This means lenders and borrowers don’t negotiate rates; any available lending liquidity will be paired with borrowing demand instantly at the optimised P2P rate.
+This means lenders and borrowers don't negotiate rates; any available lending liquidity will be paired with borrowing demand instantly at the optimised P2P rate.
 
 ### Matching Algorithm
 
@@ -28,7 +28,7 @@ At the core of Paystream's P2P engine is a **priority-based, real-time matching 
 
 When a **new borrower** initiates a loan request, the matching engine attempts to fulfil it by pairing them with the **largest available lender** supplying the requested asset. This top-down approach continues, matching the borrower to the next largest lender, and so on, until the loan amount is fully satisfied or no further lender liquidity is available.
 
-If the borrow request exceeds any single lender’s amount, the system can **split the borrow** across **multiple lenders**, in descending order of their supply size. This minimises fragmentation, maximises capital utilisation, and ensures efficient matching with minimal leftover idle funds.
+If the borrow request exceeds any single lender's amount, the system can **split the borrow** across **multiple lenders**, in descending order of their supply size. This minimises fragmentation, maximises capital utilisation, and ensures efficient matching with minimal leftover idle funds.
 
 This model achieves near-100% utilisation of matched funds: every P2P dollar lent is directly tied to a corresponding borrowed amount, eliminating capital inefficiencies typically seen in idle pool-based lending.
 
@@ -48,7 +48,7 @@ The routing engine intelligently allocates capital across multiple yield-generat
 - integrated protocols like Drift, Kamino, MarginFi(Project 0), and Jup lend
 
 
-This routing approach ensures that every dollar of capital is continuously earning the highest possible yield, even when P2P matches aren't immediately available. 
+This routing approach ensures that every dollar of capital is continuously earning the highest possible yield, even when P2P matches aren't immediately available.
 **Example:**
 
 1. **Alice (Lender) joins first**
@@ -64,4 +64,5 @@ This routing approach ensures that every dollar of capital is continuously earni
 
 Paystream is an overcollateralized lending system, meaning borrowers must supply collateral to secure their loans. Every borrower first **deposits assets as collateral**, which makes them a lender on that side of the market before they borrow another asset. Collateral deposits are deposited in the underlying pool – thus **even collateral can earn interest** while posted.
 
-Paystream enforces the same **Loan-to-Value (LTV)** ratios and **liquidation thresholds** as the underlying protocols it integrates with, to maintain consistency and security. In practice, this means that for each supported asset, there is a maximum borrowable percentage of its value (LTV), and if a borrower’s debt exceeds a certain percentage (the liquidation threshold, slightly higher than LTV), their position can be liquidated.
+Paystream enforces the same **Loan-to-Value (LTV)** ratios and **liquidation thresholds** as the underlying protocols it integrates with, to maintain consistency and security. In practice, this means that for each supported asset, there is a maximum borrowable percentage of its value (LTV), and if a borrower's debt exceeds a certain percentage (the liquidation threshold, slightly higher than LTV), their position can be liquidated.
+*/}

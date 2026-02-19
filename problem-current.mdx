@@ -1,10 +1,25 @@
 ---
 title : "Problem in existing solutions"
-description: "What makes it different from other lending platforms?"
+description: "What makes Paystream different."
 ---
 
 Let's talk about the problems we're solving. We've all been there - dealing with platforms that don't quite work the way we need them to.
 
+## Billions Idle, Yield Uncaptured
+
+The biggest problem in DeFi today isn't that yield doesn't exist. It's that so much of it never gets captured. Capital sits idle. Spreads go uncaptured. The tools to route between protocols and harvest the best returns either don't exist or live in silos. Three numbers tell the story:
+
+**$9.2B**: Solana DeFi TVL is fragmented across protocols with no single tool routing between them to find the best yield. Your capital lands in one place and stays there, even when better opportunities exist elsewhere.
+
+**$10B+**: DEX perp open interest runs across multiple venues. Each one has a different funding rate and a different settlement clock. The spread between them is structural. Almost nobody is capturing it.
+
+**80%**: Of available yield is left on the table by users who lack cross-protocol tooling. They can't compare venues, can't arbitrage funding gaps, and can't deploy into the best pools without juggling a dozen apps.
+
+Below we break down the specific pain points (liquidity provisioning, strategy execution, and more) and how Paystream fixes them.
+
+---
+
+{/*
 ## Lending Protocols
 
 ### The APY Spread Problem
@@ -26,6 +41,7 @@ Let's talk about the problems we're solving. We've all been there - dealing with
 **Our Solution:** Your collateral works for you. We route it to high-yield pools so it earns while backing your loan. Your money never sits idle.
 
 ---
+*/}
 
 ## Liquidity Provisioning Layer
 
@@ -86,5 +102,11 @@ It's like having money in 10 different bank accounts with no way to see your tot
 **The Problem:** Earning from perpetual funding rates sounds great until you realize most setups leave you exposed. You want to harvest funding without betting on price, but doing it safely means juggling two legs, margin, ADL risk, and execution across venues. One bad fill or one venue’s auto-deleveraging can blow up the hedge.
 
 **Our Solution:** We run delta-neutral funding strategies (perp-to-perp and spot-to-perp) on Hyperliquid, Drift, Pacifica, and Lighter. Pre-entry gates and stress checks decide whether we enter; margin tiers and a kill switch decide when we reduce or exit. You get exposure to funding yield with risk controls built in. See [Strategies](/strategies/overview) for the full picture.
+
+### The Manual Execution Problem
+
+**The Problem:** Even when you understand funding strategies, running them yourself means constant work. You need to open positions, monitor funding rates across venues, rebalance when the edge shifts, and close legs at the right time. Miss a rebalance or hold too long in negative funding and you lose. It's like a second job.
+
+**Our Solution:** Put your USDC in the vault and let go. The protocol opens, closes, and rebalances automatically, chasing the highest funding yield so you don't have to. You deposit, earn, and withdraw when you want. No positions to manage, no spreadsheets, no late-night rebalancing. See [Vault](/strategies/vault) for how it works.
 
 ---

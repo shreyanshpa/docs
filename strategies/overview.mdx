@@ -33,4 +33,6 @@ We support two main approaches:
 
 - **[Spot to perp](/strategies/spot-to-perp)**: Long spot and short perp to collect funding. Same-venue with portfolio margin gives the best capital efficiency (spot profit can offset perp margin); cross-venue gives more funding choice but adds transfer risk and no margin netting.
 
+- **[Vault](/strategies/vault)**: Don’t want to manage positions yourself? Deposit USDC and let the protocol handle it. The vault runs the same delta-neutral strategies on your behalf: opening, closing, and rebalancing to chase the highest funding yield. You get share tokens that track your stake and withdraw whenever you want. Set it and forget it.
+
 For safety mechanisms and auto-close behaviour in detail, see [Safeguard](/strategies/safeguard).

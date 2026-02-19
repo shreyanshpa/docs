@@ -17,40 +17,18 @@
             "group": "Introduction",
             "pages": [
               "introduction",
-              "how-paystream-works",
-              "problem-current"
-            ]
-          },
-          {
-            "group": "P2P Lending",
-            "pages": [
-              "matching-engine",
-              "liquidation",
-              "p2p-rate"
-            ]
-          },
-          {
-            "group": "Router",
-            "pages": [
-              "router",
-              "optimizers"
+              "problem-current",
+              "how-paystream-works"
             ]
           },
           {
             "group": "Strategies",
             "pages": [
               "strategies/overview",
+              "strategies/vault",
               "strategies/perp-to-perp",
               "strategies/spot-to-perp",
               "strategies/safeguard"
-            ]
-          },
-          {
-            "group": "Leveraged Liquidity Provisioning",
-            "pages": [
-              "llp",
-              "lending-pool",
-              "liquidation-llp"
             ]
           },
           {
@@ -125,6 +103,8 @@
     }
   },
   "custom": {
-    "css": ["custom.css"]
+    "css": [
+      "custom.css"
+    ]
   }
 }
