@@ -27,32 +27,6 @@ When you deposit, you get share tokens. They represent your slice of the vault, 
 
 If someone else deposits later when the share price is already $1.10, they get fewer shares per dollar, but their shares grow at the same rate from there. Earlier depositors benefit from being in longer.
 
-## What You Can Do
-
-### Deposit
-
-Put USDC into the vault. You receive share tokens instantly. Minimum and maximum amounts depend on vault configuration; deposits may be paused when the vault is at capacity.
-
-### Withdraw
-
-Burn your share tokens to get USDC back. The amount you receive depends on the current share price.
-
-Two modes exist, depending on vault configuration:
-
-**Instant withdrawal**: Burn shares and receive USDC immediately, if the vault has enough idle USDC. Best when you need quick access.
-
-**Request-based withdrawal**: Submit a withdrawal request (your shares lock), wait for the cooldown period, then complete. You can cancel the request anytime during the wait. Best for larger withdrawals or when the vault is actively managing liquidity.
-
-### Check Your Balance
-
-Your share token balance is in your wallet like any SPL token. To know what it’s worth in USDC:
-
-```
-Your USDC value = your shares × current share price
-```
-
-The share price is publicly visible on-chain at all times.
-
 ## How Yield Is Generated
 
 The vault uses **delta-neutral funding strategies** to earn from perpetual funding rates. We run hedged positions so price moves cancel out across our legs; no directional exposure. When funding is positive, we collect; the vault turns those payments into yield.
