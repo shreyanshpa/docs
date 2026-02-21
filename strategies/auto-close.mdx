@@ -5,9 +5,9 @@ description: "When and why we close positions: pipeline, cascade detection, liqu
 
 ## What Is Auto-Close?
 
-Auto-close is our last line of defense. The worst moment in delta-neutral trading isn't when you're wrong about funding. It's when you're right, you're hedged, and then something breaks. The exchange force-closes one leg (ADL). Price cascades so fast that a 5-second poll misses it. Funding flips and you're paying instead of collecting. Your collateral depegs. You trigger a close and the order doesn't confirm. You're stuck. In October 2025, $3.21B was liquidated in a single 60-second window. That's what we're building against. When certain conditions fire, we exit. No debate. We close both legs, accept slippage, and live to trade another day.
+Auto-close is the layer that decides when to exit. In delta-neutral strategies you're hedged and in theory you're safe. But things break. When danger crosses a threshold, we close both legs. No debate. We live to trade another day. The alternative is liquidation. We treat that as unacceptable.
 
-Auto-close does three jobs. It watches your positions every 5 seconds and runs a priority-ordered checklist. The first check that says "close" wins. It catches things that static thresholds miss: "how close am I?" isn't enough when price moves 5% in a minute; we ask "at this speed, how many minutes until I'm liquidated?" When we close, we make sure the close actually goes through: retries, fill verification, atomic bundles for Solana legs. We don't fire and forget. In theory, an auto-close system should act like a guardrail. It should know when you're in danger before you hit the edge. We've built it and run it through every crash scenario we could find. Below we spell out what triggers a close, why each exists, and how we make sure the close happens.
+What we have: a dedicated background worker that runs every 5 seconds. Each cycle executes a priority-ordered checklist. The first check that says "close" wins. Cascade velocity detection answers "will I be liquidated in less than 5 minutes?" We care about speed toward danger, not just distance. Liquidation proximity is the static fallback: within 5% of liquidation price, we close. Delta drift and ADL detection catch when the exchange has changed your position without your knowledge. Funding rate inversion catches when the trade thesis has flipped. When we close, we retry, verify fills, and use atomic bundles for Solana legs so we never leave you half-closed. Below we spell out each trigger, why it exists, and how we make sure the close actually happens.
 
 ---
 
@@ -17,10 +17,10 @@ Every open position is monitored by a dedicated background worker running on a 5
 
 Pipeline order (highest priority first):
 
-1. **Cascade velocity detection** — "Will I be liquidated in less than 5 minutes?"
-2. **Liquidation proximity** — "Am I within 5% of liquidation price?"
-3. **Delta drift / ADL detection** — "Did my position size change unexpectedly?"
-4. **Funding rate inversion** — "Has funding been negative for 3+ hours?"
+1. **Cascade velocity detection** "Will I be liquidated in less than 5 minutes?"
+2. **Liquidation proximity** "Am I within 5% of liquidation price?"
+3. **Delta drift / ADL detection** "Did my position size change unexpectedly?"
+4. **Funding rate inversion** "Has funding been negative for 3+ hours?"
 
 If none trigger, the position stays open and the cycle repeats in 5 seconds. Each check independently decides whether to close.
 
