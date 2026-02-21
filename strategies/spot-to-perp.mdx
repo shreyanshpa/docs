@@ -19,6 +19,6 @@ You buy the asset on spot and sell it on perpetual. The exchange does **not** ne
 
 ## Liquidation and Basis Risk
 
-The perp leg has its own liquidation price; the venue doesn’t see your spot hedge. We keep margin enough for worst-case basis divergence and keep a liquidation buffer of at least max(15%, 2× 30-day realized vol). Max safe leverage in practice is limited by basis risk plus maintenance margin plus that buffer, we stay at 2–3x. For the full margin tiers and when we auto-close, see [Safeguard](/strategies/safeguard).
+The perp leg has its own liquidation price; the venue doesn’t see your spot hedge. We keep margin enough for worst-case basis divergence and keep a liquidation buffer of at least max(15%, 2× 30-day realized vol). Max safe leverage in practice is limited by basis risk plus maintenance margin plus that buffer, we stay at 2–3x. For the full margin tiers and when we auto-close, see [Auto-close](/strategies/auto-close).
 
-For safety mechanisms and auto-close options, see [Safeguard](/strategies/safeguard). For how this fits with perp–perp and the overall framework, see [Overview](/strategies/overview).
+For safety mechanisms and auto-close options, see [Safety Mechanisms](/strategies/safety-mechanisms) and [Auto-close](/strategies/auto-close). For how this fits with perp–perp and the overall framework, see [Overview](/strategies/overview).

@@ -13,7 +13,7 @@ You go **short** where funding is **higher** (you receive from longs) and **long
 
 Example: Hyperliquid pays +0.03% per 8h, Drift pays +0.01% per 8h. You short the higher-funding venue and long the lower. Your net is 0.02% per 8h, about 0.06% per day, or roughly 22% APR. The position is hedged: you’re harvesting the funding gap, not price move.
 
-There’s **no spot leg**, so there’s no portfolio margin. Each perp leg has its own margin and liquidation price. Leg risk (one leg filled before the other) and ADL risk (one venue force-closing your profitable leg) both apply. We keep leverage at 2–3x and follow our [Safeguard](/strategies/safeguard) rules so you’re not caught off guard.
+There’s **no spot leg**, so there’s no portfolio margin. Each perp leg has its own margin and liquidation price. Leg risk (one leg filled before the other) and ADL risk (one venue force-closing your profitable leg) both apply. We keep leverage at 2–3x and follow our [Safety Mechanisms](/strategies/safety-mechanisms) so you’re not caught off guard.
 
 ## What We Have Here
 
@@ -27,6 +27,6 @@ To keep cost down, we use **post-only** on both legs where we can, that keeps ne
 
 **Exit**: We close the **less reliable leg first** (e.g. the venue with slower finality or thinner book), then the other. We use IOC or market on both: speed over fee savings. In an emergency we cancel everything, market-close the first leg, then market-close the second without waiting for confirmations, and we retry the first leg up to 3× if needed.
 
-**Risks**: No portfolio margin offset means each leg stands on its own. ADL on one venue can close your profitable leg and leave the other naked. That’s why we stick to leverage ≤ 3x, monitor ADL every 30s, and follow [Safeguard](/strategies/safeguard): reduce at ADL 4/5, exit at 5/5, and if ADL fires on one leg, we close the other at market immediately.
+**Risks**: No portfolio margin offset means each leg stands on its own. ADL on one venue can close your profitable leg and leave the other naked. That’s why we stick to leverage ≤ 3x, monitor ADL every 30s, and follow [Safety Mechanisms](/strategies/safety-mechanisms): reduce at ADL 4/5, exit at 5/5, and if ADL fires on one leg, we close the other at market immediately.
 
-For the full safety framework, pre-entry gates, and auto-close options, see [Safeguard](/strategies/safeguard). For the big picture and how this fits with spot–perp, see [Overview](/strategies/overview).
+For the full safety framework, pre-entry gates, and auto-close options, see [Safety Mechanisms](/strategies/safety-mechanisms) and [Auto-close](/strategies/auto-close). For the big picture and how this fits with spot–perp, see [Overview](/strategies/overview).

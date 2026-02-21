@@ -31,7 +31,7 @@ If someone else deposits later when the share price is already $1.10, they get f
 
 The vault uses **delta-neutral funding strategies** to earn from perpetual funding rates. We run hedged positions so price moves cancel out across our legs; no directional exposure. When funding is positive, we collect; the vault turns those payments into yield.
 
-We manage positions in a way that **reduces risk and maximises return**. We apply the same safety mechanisms as our manual strategies: pre-entry gates, stress simulations, margin tiers, and a kill switch. We size and monitor for liquidation and ADL risk so one bad move doesn’t blow up the book. At the same time, we rebalance and rotate across venues and pairs to chase the highest funding rates. See [Safeguard](/strategies/safeguard) for how we protect positions and handle liquidation.
+We manage positions in a way that **reduces risk and maximises return**. We apply the same safety mechanisms as our manual strategies: pre-entry gates, stress simulations, margin tiers, and a kill switch. We size and monitor for liquidation and ADL risk so one bad move doesn’t blow up the book. At the same time, we rebalance and rotate across venues and pairs to chase the highest funding rates. See [Safety Mechanisms](/strategies/safety-mechanisms) for how we protect positions and handle liquidation.
 
 ## What Happens to Your Money
 

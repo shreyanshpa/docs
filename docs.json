@@ -28,7 +28,7 @@
               "strategies/vault",
               "strategies/perp-to-perp",
               "strategies/spot-to-perp",
-              "strategies/safeguard"
+              "strategies/safety-mechanisms","strategies/auto-close"
             ]
           },
           {
