@@ -7,7 +7,7 @@ description: "How we protect your capital: pre-entry gates, entry safety, margin
 
 Safety mechanisms are the checks and protocols that sit between your capital and everything that can go wrong. Delta-neutral funding sounds simple: you're hedged, you collect funding. In practice, things break. We assume the worst and build layers that guard at every phase. We'd rather skip a trade or exit early than hope and hold.
 
-What we have: pre-entry gates that all must pass (funding profitability, spread, OI, volatility, insurance fund, ADL level, oracle freshness, order book depth, and more), plus a stress simulation before every entry. Entry safety: atomic execution for same-chain pairs, auto-rollback for cross-venue when one leg fails, fill verification so we catch partials. Four-tier margin defense so we act before the edge. Venue outage protocol for when exchanges go down. A kill switch that runs separately so it can halt everything even if the engine hangs. Exchange-side stops that fire even if our system is offline. Several of these are designed and backtested; implementation is rolling out. The [auto-close pipeline](/strategies/auto-close) (cascade velocity, liquidation proximity, delta/ADL, funding inversion, close execution) is live. For the full roadmap, see [Auto-close: What We're Building](/strategies/auto-close#what-were-building). We've stress-tested every guard against 7 historical crashes. We don't ship hope. We ship what survives. For the exit side, see [Auto-close](/strategies/auto-close).
+We check every trade before it opens, make sure both legs fill before calling it open, watch margin continuously and act before the edge, handle exchange outages, and keep a kill switch separate from the trading engine so it can stop everything even if the engine hangs. The [auto-close pipeline](/strategies/auto-close) is live. Several other layers are designed and being rolled out. We've tested every guard against 7 historical crashes. For the exit side, see [Auto-close](/strategies/auto-close).
 
 Below we spell out each risk we guard against and how we handle it.
 
@@ -23,67 +23,67 @@ Below we spell out each risk we guard against and how we handle it.
 
 | Gate | What It Checks | Pass Condition |
 | :--- | :--- | :--- |
-| **Funding profitability** | Is the funding diff worth it? | Current diff > 80th percentile of 30-day history; funding positive ≥3 intervals in a row |
-| **Trade profitability** | Does the spread allow profit after costs? | Net entry cost under max acceptable (e.g. 0.05%); break-even under 48h |
-| **Cross-market spread (S5)** | Is spread wide enough for execution? | Current spread above rolling 20-period mean |
-| **Open interest crowding** | Is the trade too crowded? | OI percentile under 95 |
-| **Volatility circuit breaker** | Has price moved too much lately? | Recent move under 2× historical vol and under 5% absolute |
-| **Basis Z-score** | Is perp premium overstretched? | Z-score under +2 |
-| **Liquidation buffer** | Enough margin cushion after entry? | Initial buffer > max(15%, 2× 30d realized vol) |
-| **Insurance fund** | Is the exchange's safety net healthy? | Insurance balance > 50% of 30d average |
-| **ADL level** | How close are we to ADL risk? | ADL indicator ≤ 3 (out of 5) |
-| **Oracle freshness** | Is the price feed up to date? | Within threshold (e.g. Pyth 60s, HL 30s, Stork 120s) |
-| **Order book depth** | Can we exit if we need to? | Depth within 50 bps > 2× position size on both venues |
-| **Leverage** | Hard cap on leverage | ≤ 3x (max 5x only for BTC/ETH) |
+| **Funding profitability** | Is the funding diff worth it? | Current diff above the recent historical range; funding positive for multiple intervals in a row |
+| **Trade profitability** | Does the spread allow profit after costs? | Net entry cost within acceptable range; break-even under 48h |
+| **Cross-market spread** | Is spread wide enough for execution? | Current spread above its recent average |
+| **Open interest crowding** | Is the trade too crowded? | OI not in the top percentile of its range |
+| **Volatility circuit breaker** | Has price moved too much lately? | Recent move within normal bounds |
+| **Basis Z-score** | Is perp premium overstretched? | Not too far above fair value |
+| **Liquidation buffer** | Enough margin cushion after entry? | Sufficient buffer relative to recent volatility |
+| **Insurance fund** | Is the exchange's safety net healthy? | Insurance balance above its recent average |
+| **ADL level** | How close are we to ADL risk? | ADL indicator in the safe range |
+| **Oracle freshness** | Is the price feed up to date? | Within the freshness threshold for each venue |
+| **Order book depth** | Can we exit if we need to? | Enough liquidity on both sides to absorb the position |
+| **Leverage** | Hard cap on leverage | Conservative limit, stricter for smaller assets |
 
-We also run a pre-entry stress simulation before every entry. We ask: if price drops 15% in an hour, what happens to margin on the losing leg? If funding flips negative for 48 hours, what's net PnL? If ADL hits our profitable leg, are we left naked? If slippage doubles, is break-even still under 48 hours? If any of these is unacceptable, we do not enter.
+Before every entry we also run a quick stress simulation. What if price drops sharply in an hour? What if funding flips negative for two days? What if ADL closes our profitable leg? If any scenario looks unacceptable, we don't enter.
 
 ### Half-Open Positions: One Leg Fills, the Other Fails
 
-**The problem.** You're running two legs, long on one venue and short on another. Leg 1 fills. Leg 2 fails (timeout, rejection, partial fill). You're now directional and exposed. One bad move and you're liquidated.
+**The problem.** You're running two legs, long on one venue and short on another. Leg 1 fills. Leg 2 fails. You're now directional and exposed. One bad move and you're liquidated.
 
-**How we protect.** For same-chain pairs (e.g. Drift and Drift), both legs are bundled in a single atomic transaction. Both open or neither opens. No in-between.
+**How we protect.** For same-chain pairs, both legs go in a single atomic transaction. Both open or neither opens.
 
-For cross-venue pairs, legs execute sequentially. If leg 2 fails, we immediately close leg 1. That's our auto-rollback. If the rollback succeeds, no positions are opened and we notify you. If the rollback fails, we flag the position for manual intervention and alert you right away. You're never left with an unhedged position without explicit notification.
+For cross-venue pairs, if the second leg fails we immediately close the first. If that rollback works, nothing is left open and we notify you. If it fails, we flag it for manual review and alert you immediately. You're never left half-open without explicit notification.
 
-We also verify every fill. After every open or close order, we check the actual filled size against what we requested. If the fill is under 95% of requested, we retry the remainder or close the partial. If cross-leg fill mismatch is over 5%, we rebalance or close both. IOC orders during extreme volatility can partially fill; undetected partial fills break delta neutrality. So we catch them.
+We also verify every fill. If what came back is short of what we requested, we retry the remainder or close the partial. If the two legs are mismatched after execution, we rebalance or close both.
 
 ### Margin Creep: Drifting Toward Liquidation Without Warning
 
-**The problem.** Margin drops slowly, then suddenly. By the time you notice, you're one move from liquidation. Level-based checks can miss the drift until it's too late.
+**The problem.** Margin drops slowly, then suddenly. By the time you notice, you're one move from liquidation.
 
-**How we protect.** We don't wait until we're at the edge. We act in tiers so we have time to react.
+**How we protect.** We act in tiers so there's time to react before things get critical.
 
 | Tier | Margin Ratio | What We Do |
 | :--- | :--- | :--- |
-| **1 – Healthy** | > 300% | Poll every 10s; monitor only; no action |
-| **2 – Warning** | 200–300% | Alert; stop new entries; tighten take-profit; poll every 5s |
-| **3 – Danger** | 150–200% | Reduce position 25–50%; add collateral if needed; cancel all orders; poll every 2s |
+| **1 – Healthy** | > 300% | Monitor only; no action |
+| **2 – Warning** | 200–300% | Alert; stop new entries; tighten take-profit |
+| **3 – Danger** | 150–200% | Reduce position; add collateral if needed; cancel all orders |
 | **4 – Emergency** | under 150% | Close everything. See [Auto-close](/strategies/auto-close) for how and when. |
 
 ### Venue Outage: One Exchange Goes Down While You're Exposed
 
-**The problem.** One of your leg venues goes offline. You can't see your position, can't close it, can't hedge. Lighter was down 4.5 hours during the October 2025 crash. dYdX was offline for 8 hours. You're stuck.
+**The problem.** One of your leg venues goes offline. You can't see your position, can't close it, can't hedge. Lighter was down 4.5 hours during the October 2025 crash. dYdX was offline for 8 hours.
 
-**How we protect.** We ping both leg venues every check cycle. If one venue is unreachable for more than 5 minutes, we block new entries on that venue and alert you. If it's unreachable for more than 15 minutes, we attempt a hedge on a third venue if we have reserve capital. If we don't, we reduce the live-venue leg proportionally to the worst-case margin buffer on the down venue. When a venue recovers, we re-verify position state before resuming normal monitoring. If we placed a temporary hedge, we close it.
+**How we protect.** We watch both venues continuously. If one goes unreachable, we block new entries and alert you. If it stays down, we hedge on a third venue if we have the capital, or reduce the open leg to limit exposure. When the venue comes back, we re-verify your position before resuming normal monitoring and close any temporary hedge we placed.
 
 ### Engine Hang or Runaway: The Bot Stops Responding or Goes Rogue
 
-**The problem.** The trading engine hangs, crashes, or starts doing something it shouldn't. Orders keep going out. Or nothing goes out when it should. You need a way to kill everything from outside the main loop.
+**The problem.** The trading engine hangs, crashes, or starts behaving unexpectedly. You need something outside the main loop that can stop everything.
 
-**How we protect.** The kill switch runs in a separate process from the trading engine so it can still act if the engine hangs. Before every order, the engine checks a shared flag; if it says KILLED, we cancel all, close all, and halt. The kill switch sets the flag and can also send cancel-all and close-all directly to the exchanges. We can kill per-strategy, per-exchange, or globally. The kill switch pings every 5 seconds; if the engine hasn't seen a heartbeat in 30 seconds, it self-kills and alerts. Auto triggers include daily drawdown above 3%, any API unreachable above 5 minutes, margin ratio under 150%, net delta above 10%, or the kill switch process itself failing.
+**How we protect.** The kill switch runs in a completely separate process. The engine checks the kill flag before every order; if it's set, everything stops. We can kill per-strategy, per-venue, or globally. If the engine stops responding on its own, it self-kills and alerts. Auto triggers include drawdown crossing a threshold, any API down for too long, margin too low, or delta too far from neutral.
 
 ### Optional: Extra Layers We're Building
 
-We're slowly building additional layers. Exchange-side protective stops can place a GTC stop-loss on each leg (e.g. ±15% from entry) on the exchange. Those survive a bot crash. Graduated confidence lets each gate output a score (0–100) instead of pass/fail; we scale position size by that score. Graceful degradation lets us step down: Full to Defensive (no new entries) to Exit-only to Emergency (market close all) to Frozen (only exchange-side stops active). On startup we sync positions and orders with exchanges and run read-only for 5 minutes before allowing trading. We reserve a fixed share (e.g. 40%) of API capacity for safety-critical calls and never cut that share when under pressure.
+Exchange-side stops place a stop-loss directly on the exchange, surviving even a full bot crash. Graduated confidence scores each pre-entry gate and scales position size by the result rather than a hard pass or fail. Graceful degradation steps down from full trading to exit-only to emergency close. On startup we run in read-only mode for a few minutes before allowing any new trades.
 
 ### How We Watch: Monitoring Infrastructure
 
-All safety checks run on a 5-second polling cycle via a distributed job queue (BullMQ and Redis). We scale horizontally: multiple workers process checks concurrently. For each position we run a three-stage priority pipeline. Liquidation proximity comes first (highest priority), then delta drift and ADL detection, then funding rate inversion. Funding rate data is collected hourly from all supported DEXes and stored with 72-hour retention. Oracle prices are aggregated from multiple sources with a 5-second cache and automatic fallback. Job deduplication prevents double-processing of the same position.
+All safety checks run continuously. Multiple positions are checked at the same time. For each position the priority order is: liquidation proximity first, then delta drift and ADL, then funding rate inversion. Funding data is collected from all supported venues regularly. Prices are pulled from multiple sources with automatic fallback.
 
 ### Validating Against History: Stress Testing
 
-Every safeguard is backtested against seven historical black swan events using our simulation engine (pays-sim). Each simulation runs tick-by-tick with realistic price movements from historical data, funding rate shifts per venue, venue outages (actual downtime windows), ADL activation conditions, liquidation cascade dynamics, and slippage and execution delays. Our safety guards are validated to trigger before positions reach liquidation under each scenario.
+Every safeguard is tested against seven historical black swan events. Each simulation uses real historical prices, real funding rate shifts per venue, actual exchange downtime windows, and realistic slippage and execution delays. Every guard is confirmed to trigger before liquidation under each scenario.
 
 **USDC depeg / SVB collapse (March 2023).** Collateral devalues 13%, funding rate volatility. Tests collateral health detection, funding flip guard.
 

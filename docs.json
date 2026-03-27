@@ -32,17 +32,6 @@
             ]
           },
           {
-            "group": "LP Terminal",
-            "pages": [
-              "lp-terminal/what",
-              "lp-terminal/automation",
-              "lp-terminal/copy-trade",
-              "lp-terminal/portfolio",
-              "lp-terminal/discover-and-pool",
-              "lp-terminal/referral"
-            ]
-          },
-          {
             "group": "Resources",
             "pages": [
               "funding-rate-guide",

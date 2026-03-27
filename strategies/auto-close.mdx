@@ -7,24 +7,22 @@ description: "When and why we close positions: pipeline, cascade detection, liqu
 
 Auto-close is the layer that decides when to exit. In delta-neutral strategies you're hedged and in theory you're safe. But things break. When danger crosses a threshold, we close both legs. No debate. We live to trade another day. The alternative is liquidation. We treat that as unacceptable.
 
-What we have: a dedicated background worker that runs every 5 seconds. Each cycle executes a priority-ordered checklist. The first check that says "close" wins. Cascade velocity detection answers "will I be liquidated in less than 5 minutes?" We care about speed toward danger, not just distance. Liquidation proximity is the static fallback: within 5% of liquidation price, we close. Delta drift and ADL detection catch when the exchange has changed your position without your knowledge. Funding rate inversion catches when the trade thesis has flipped. When we close, we retry, verify fills, and use atomic bundles for Solana legs so we never leave you half-closed. Below we spell out each trigger, why it exists, and how we make sure the close actually happens.
+We watch every open position continuously. When something looks wrong, we don't wait for you to notice. We run through a checklist in order of priority, and the first item that says "close" wins. Below we explain each trigger, why it exists, and how we make sure the close actually goes through.
 
 ---
 
 ## How Auto-Close Works
 
-Every open position is monitored by a dedicated background worker running on a 5-second cycle. Each cycle runs a priority-ordered check pipeline. The first check that triggers a close wins.
+Every open position is monitored continuously. Each cycle runs a priority-ordered check pipeline. The first check that triggers a close wins.
 
 Pipeline order (highest priority first):
 
-1. **Cascade velocity detection** "Will I be liquidated in less than 5 minutes?"
-2. **Liquidation proximity** "Am I within 5% of liquidation price?"
+1. **Cascade velocity detection** "Will I be liquidated in the next few minutes?"
+2. **Liquidation proximity** "Am I too close to my liquidation price?"
 3. **Delta drift / ADL detection** "Did my position size change unexpectedly?"
-4. **Funding rate inversion** "Has funding been negative for 3+ hours?"
+4. **Funding rate inversion** "Has funding been working against me for hours?"
 
-If none trigger, the position stays open and the cycle repeats in 5 seconds. Each check independently decides whether to close.
-
-Infrastructure: We use a distributed job queue (BullMQ and Redis) with 5 concurrent workers. Oracle prices are aggregated from Hyperliquid, Drift, and Pacifica with a 5-second cache and automatic source fallback. Funding rate history is collected hourly from all supported DEXes. All close orders use the reduce_only flag to prevent accidental position reversal.
+If none trigger, the position stays open and the cycle repeats.
 
 ---
 
@@ -32,67 +30,45 @@ Infrastructure: We use a distributed job queue (BullMQ and Redis) with 5 concurr
 
 ### Cascade Velocity: Liquidation Coming Too Fast for Level Checks
 
-**The problem.** Level-based margin checks run every few seconds. But liquidation can happen in 60 seconds. During the October 2025 crash, $3.21 billion was liquidated in a single 60-second window. By the time the next poll runs, you could be gone. A static "how close am I?" threshold can miss fast crashes.
+**The problem.** Checking how close you are to liquidation every few seconds sounds good, until you realize liquidation can happen in 60 seconds. During the October 2025 crash, $3.21 billion was liquidated in a single 60-second window. By the time the next check runs, you could be gone.
 
-**How we respond.** Instead of asking "how close am I to liquidation?", we ask "at the current speed of price movement, how many minutes until I hit liquidation?" The metric is Time-to-Liquidation (TTL):
-
-TTL = distance_to_liquidation / adverse_price_velocity
-
-Example: Position liquidation price is $44,000, current BTC price is $58,500, price is dropping at 5.6% per minute. Distance to liquidation is 24.4%. TTL = 24.4% / 5.6%/min = 4.3 minutes. We close.
-
-Every position has a different entry and liquidation price. A 3% per minute crash is dangerous if you're 8% from liquidation but safe if you're 25% away. TTL naturally accounts for this. We measure velocity over a 60-second rolling window (12 data points), smoothed to filter out single-candle wicks. We close if TTL is under 5 minutes (configurable). Five-second sampling ignores sub-5-second wicks, and 60-second smoothing dilutes single-sample noise. A 3% wick on a well-margined position (25% from liquidation) produces TTL of roughly 7 minutes, above the threshold, so we don't false-trigger.
+**How we respond.** We don't just ask "how close am I?" We ask "at the speed price is moving right now, how many minutes until I hit liquidation?" If the answer is "not long," we close. A sharp wick doesn't trigger this. It takes a sustained move in the wrong direction.
 
 ### Liquidation Proximity: The Static Safety Net
 
-**The problem.** Price is approaching liquidation in any market condition. You need a fallback that works regardless of velocity. Even if velocity data is unavailable (startup, price feed issues), no position should get within 5% of liquidation without triggering a close.
+**The problem.** Even without a fast crash, price can slowly drift toward your liquidation level. You need something watching that regardless of speed.
 
-**How we respond.** Every 5 seconds we fetch the current oracle price and compute distance to liquidation for both legs: distance = |current_price - liquidation_price| / current_price. If either leg is within 5% of its liquidation price, we close both immediately. We use the liquidation prices stored at entry time, computed from the exchange's actual margin and maintenance requirements. Cascade detection catches fast moves early (velocity-aware). Liquidation proximity is the static fallback.
+**How we respond.** We check the distance between your current price and your liquidation price on both sides of the position. If either side gets too close, we close both immediately.
 
 ### Delta Drift / ADL: The Exchange Force-Closes Your Profitable Leg
 
-**The problem.** ADL (auto-deleveraging) is portfolio-blind. The exchange doesn't know you're hedged. It can close your profitable leg and leave the other naked. That's the single most dangerous thing for delta-neutral strategies. The same risk applies to partial liquidations, external closes, or any scenario where position sizes become mismatched.
+**The problem.** Exchanges don't know you're hedged. Auto-deleveraging (ADL) can close your winning leg and leave the other one sitting there, fully exposed. That's the worst thing that can happen in a delta-neutral strategy.
 
-**How we respond.** Every 5 seconds we run three sub-checks.
-
-**Position existence.** We query both exchanges for live position data. If either position has vanished entirely (full ADL, full liquidation, or manual close), we immediately close the surviving leg.
-
-**Size drift vs entry.** We compare each leg's current size against the size stored at entry. If either leg has changed by more than 5%, we close both. Example: You entered with 1.5 BTC on each leg. ADL reduces your long to 1.38 BTC (7.8% drift). We detect this and close both legs within 5 seconds.
-
-**Cross-leg imbalance.** Even if both legs still exist, we check whether they've diverged from each other. If |longSize - shortSize| / averageSize is greater than 5%, we close both.
-
-For the first 60 seconds after a position opens, delta drift checks are paused to allow on-chain orders to settle. That prevents false positives from Solana transaction confirmation delays. If either exchange API fails to respond, we skip the delta drift check for that cycle rather than triggering a false close. We never close based on incomplete data.
+**How we respond.** We watch both sides of your position. If one leg disappears, we close the other immediately. If one leg shrinks or the two legs drift apart from each other, we close both. We never act on incomplete information. If we can't read a leg, we wait for the next cycle.
 
 ### Funding Rate Inversion: The Edge Flips Against You
 
-**The problem.** Funding was positive when you entered. Now it's negative. You're paying shorts instead of collecting. During the October 2025 crash, funding rates inverted across all venues simultaneously. The trade thesis is broken.
+**The problem.** You entered because funding was positive. Now it's negative and you're paying instead of collecting. The whole reason the trade existed is gone.
 
-**How we respond.** We collect hourly funding rates from all supported DEXes (Hyperliquid, Drift, Pacifica, Aster, Lighter) and store 72 hours of history. Every 5 seconds we check the last 3 hourly records. Net rate = short_venue_rate - long_venue_rate. If net rate has been negative for all 3 consecutive hours and the average is negative, we close both legs. Funding rates are noisy. A single negative hour is common and usually reverts. Three consecutive negative hours indicates a regime change. Hyperliquid, Drift, Pacifica, and Lighter settle hourly. Aster settles every 8 hours. For Aster pairs, the "3 consecutive" check spans 24 hours of data (3 × 8-hour intervals).
+**How we respond.** We track funding rates across all supported venues. If net funding has been negative for several consecutive hours, we close. One bad hour is normal. Several in a row means the trade is no longer working in your favor.
 
 ### Collateral Depeg: Your Margin Is Worth Less Than the System Thinks
 
-**The problem.** Margin is denominated in stablecoins. If USDC, USDT, or USDe depegs, your margin is worth less than the system assumes. Liquidation price is effectively closer than displayed. In March 2023, USDC depegged 13% during the SVB collapse. In October 2025, USDe dropped to $0.65.
+**The problem.** Your margin sits in stablecoins. If those stablecoins lose their peg, your margin is worth less than the system assumes and your liquidation price is closer than it looks. USDC dropped 13% during the SVB collapse. USDe hit $0.65 in October 2025.
 
-**How we respond.** We monitor the price of collateral stablecoins every cycle. If collateral depegs more than 1% from $1.00, we emergency close all positions on affected venues.
+**How we respond.** We monitor your collateral every cycle. If it depegs meaningfully, we close all positions on affected venues immediately.
 
 ### Take Profit: Target Hit
 
-**The problem.** There isn't one. You've reached your profit target and want to lock it in.
+**The problem.** There isn't one. You've hit your target and want to lock it in.
 
 **How we respond.** When the target is hit, we close both legs.
 
 ### Close Execution and Retry: Making Sure the Close Goes Through
 
-**The problem.** We trigger a close. The order doesn't confirm. Maybe the exchange is slow. Maybe it failed. We can't leave the position open and assume it worked.
+**The problem.** We trigger a close. The order doesn't confirm. We can't just assume it worked.
 
-**How we respond.** When any auto-close triggers, we mark the position pair as "closing" in the database, then send a close request to the execution backend. The backend closes each leg on its respective exchange using reduce_only market or IOC orders.
-
-Per-protocol close mechanics: Drift uses a Solana transaction via Jito bundle (atomic on-chain). Hyperliquid uses an IOC limit order with 1% slippage tolerance. Pacifica uses a market order with 1% slippage and Privy wallet signing. Aster uses an IOC limit order via HMAC-authenticated REST API.
-
-If a close fails, we detect stuck closes. Any position in "closing" status for more than 60 seconds is retried automatically. We re-check both exchanges for live positions. If both are gone, we mark as closed (the exchange may have liquidated them). If positions are still open, we re-send the close request. We retry up to 5 times before flagging for manual review. On close orders we use progressive slippage: start at 1%, widen to 2%, then 5% on retry.
-
-When both legs are on Solana (e.g. Drift + Drift), both close transactions are bundled into a single Jito bundle. They either both execute or neither does. No risk of one leg closing while the other fails.
-
-We also verify every fill. If the fill is under 95% of requested, we retry the remainder or close the partial. If there's a cross-leg mismatch above 5%, we rebalance or close both. Partial fills on IOC orders during volatility are a real risk; we catch them.
+**How we respond.** We send the close request and then watch to make sure it actually filled. If it's taking too long, we retry. Each retry is a bit more aggressive to make sure it goes through. We check what actually filled, not just what was sent. If one leg closed but the other didn't, we catch it. When both legs are on the same chain, we send them together so they either both close or neither does.
 
 ---
 
@@ -100,20 +76,20 @@ We also verify every fill. If the fill is under 95% of requested, we retry the r
 
 The following protections are designed, backtested against 7 historical black swan events, and scheduled for implementation.
 
-**Four-tier margin defense.** Instead of a single 5% liquidation threshold, graduated responses: Healthy (margin > 300%) normal monitoring; Warning (200–300%) block new entries, tighten take-profit; Danger (150–200%) reduce position 25–50%, add collateral; Emergency (< 150%) market close everything. Protects against gradual margin erosion.
+**Four-tier margin defense.** Instead of waiting until you're near liquidation, we respond in stages: normal monitoring when things are healthy, blocking new entries and tightening take-profit when margin dips, reducing the position when it dips further, and closing everything in an emergency.
 
-**Venue outage detection.** If one exchange becomes unreachable: under 5 minutes we alert and block new entries on that venue; over 15 minutes we attempt a hedge on a third venue if reserve capital is available, or reduce the live-venue leg. Lighter was down 4.5 hours during October 2025; dYdX was offline for 8 hours.
+**Venue outage detection.** If one exchange goes unreachable, we block new entries and alert you. If it stays down, we hedge on a third venue or reduce the open leg to limit exposure. Lighter was down 4.5 hours during October 2025. dYdX was offline for 8.
 
-**Cross-venue price divergence.** Compare oracle prices between the two exchanges. Divergence over 2%: reduce position 25%. Divergence over 5%: emergency close both legs. Protects against delta-neutral breakdown when venues price the same asset differently during stress.
+**Cross-venue price divergence.** If the two exchanges start pricing the asset differently during stress, your hedge breaks down. We compare prices continuously and reduce or close if they drift too far apart.
 
-**Kill switch.** A separate process that monitors system health and can halt all trading globally. Heartbeat check every 5 seconds. Auto-triggers: daily drawdown above 3%, any venue unreachable over 5 minutes, margin under 150%, net delta above 10%. Per-strategy, per-venue, or global kill levels.
+**Kill switch.** A separate process that can stop all trading immediately, even if the trading engine itself is hanging. Can kill per-strategy, per-venue, or globally. Auto-triggers if drawdown, margin, or delta cross safe thresholds.
 
-**Entry rollback.** If one leg of a new position opens but the other fails, we immediately close the successful leg. No user is left with an unhedged position. Protects against partial execution leaving naked directional exposure.
+**Entry rollback.** If one leg opens and the other fails, we close the first leg right away. No one ends up with an unhedged position.
 
-**Volatility circuit breaker.** Block new entries when recent price movement exceeds 2× the 30-day historical volatility or 5% absolute. Protects against entering during peak chaos when slippage and liquidation risk are highest.
+**Volatility circuit breaker.** We block new entries when price has been moving too fast. Entering during peak chaos is when slippage and liquidation risk are highest.
 
-**Pre-entry safety gates.** Twelve checks that must all pass before any position opens: funding above 80th percentile, funding positive for 3+ intervals, break-even under 48 hours, spread above rolling mean, OI below 95th percentile, volatility below 2× average, basis Z-score below +2, margin buffer above max(15%, 2× monthly vol), insurance fund above 50% of average, ADL indicator ≤ 3/5 on both exchanges, oracle within freshness threshold, order book depth above 2× position size on both venues. If any gate fails, the trade is rejected.
+**Pre-entry safety gates.** A checklist that must fully pass before any trade opens. It covers funding quality, spread, crowding, volatility, margin buffer, insurance fund health, ADL risk, price feed freshness, and order book depth. If any item fails, we don't enter.
 
-**Exchange-side stop losses.** GTC stop-loss orders placed directly on exchanges at ±15% from entry. These survive even if our entire system goes offline; the exchange executes them independently. Protects against complete system failure, server crashes, network partitions.
+**Exchange-side stop losses.** Stop-loss orders placed directly on the exchange so they fire even if our entire system is offline.
 
-For the full safety framework (pre-entry gates, entry safety, venue outage protocol) and stress testing against 7 historical black swan events, see [Safety Mechanisms](/strategies/safety-mechanisms). For how this fits with [Overview](/strategies/overview), [Perp to perp](/strategies/perp-to-perp), and [Spot to perp](/strategies/spot-to-perp), use those links.
+For the full safety framework and stress testing against 7 historical black swan events, see [Safety Mechanisms](/strategies/safety-mechanisms). For how this fits with [Overview](/strategies/overview), [Perp to perp](/strategies/perp-to-perp), and [Spot to perp](/strategies/spot-to-perp), use those links.
